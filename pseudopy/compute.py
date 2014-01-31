@@ -1,7 +1,7 @@
 import numpy
 from scipy.linalg import svdvals, schur, eigvalsh, solve_triangular
 #from scipy.sparse.linalg import svds
-from scipy.sparse.linalg import eigsh, LinearOperator
+from scipy.sparse.linalg import eigs, eigsh, LinearOperator
 
 
 def inv_resolvent_norm(A, z, method='svd'):
@@ -56,39 +56,33 @@ def evaluate(A,
     Vals = numpy.zeros((imag_n, real_n))
     if method == 'dense':
         # algorithm from page 375 of Trefethen/Embree 2005
-        # TODO: use efficient lanczos :)
-        maxiter = 100
         T, _ = schur(A, output='complex')
+        m, n = A.shape
+        if m != n:
+            raise ValueError('m != n is not allowed in dense mode')
         for imag_i in range(imag_n):
             for real_i in range(real_n):
                 z = real[real_i]+1j*imag[imag_i]
-                T1 = z*numpy.eye(*A.shape) - T
-                T2 = T1.T.conj()
-                sig_old = 0
-                q_old = numpy.random.rand(A.shape[0])
-                beta = 0
-                H = numpy.zeros((maxiter+1, maxiter+1))
-                q = numpy.ones(A.shape[0])
-                q /= numpy.linalg.norm(q)
-                for p in range(maxiter):
-                    v = solve_triangular(T1,
-                                         solve_triangular(T2, q)
-                                         ) \
-                        - beta*q_old
-                    alpha = numpy.real(numpy.vdot(q, v))
-                    v = v - alpha*q
-                    beta = numpy.linalg.norm(v)
-                    q_old = q.copy()
-                    q = v/beta
-                    H[p+1, p] = beta
-                    H[p, p+1] = beta
-                    H[p, p] = alpha
-                    sig = numpy.max(eigvalsh(H[:p+1, :p+1]))
-                    if abs(sig_old/sig - 1) < 1e-3:
-                        break
-                    sig_old = sig
-                Vals[imag_i, real_i] = numpy.sqrt(sig)
+                M = T - z*numpy.eye(*T.shape)
 
+                def matvec(x):
+                    return solve_triangular(M,
+                                            solve_triangular(M,
+                                                             x,
+                                                             check_finite=False
+                                                             ),
+                                            trans=2,
+                                            check_finite=False
+                                            )
+                MH_M = LinearOperator(matvec=matvec, dtype=numpy.complex,
+                                      shape=(n, n))
+
+                evals = eigsh(MH_M, k=1, tol=1e-3, which='LM',
+                              maxiter=n,
+                              ncv=n,
+                              return_eigenvectors=False)
+
+                Vals[imag_i, real_i] = 1/numpy.sqrt(numpy.max(numpy.abs(evals)))
     else:
         for imag_i in range(imag_n):
             for real_i in range(real_n):
