@@ -10,7 +10,7 @@ def visualize(A,
               levels=None
               ):
     real = numpy.linspace(real_min, real_max, real_n)
-    imag = numpy.linspace(imag_min, imag_max, real_n)
+    imag = numpy.linspace(imag_min, imag_max, imag_n)
 
     x, y = numpy.meshgrid(real, imag)
     x = x.flatten()
@@ -20,6 +20,7 @@ def visualize(A,
 
     triang = Triangulation(x, y)
     pyplot.tricontour(triang, vals, levels=levels)
+    pyplot.colorbar()
 
     pyplot.show()
 
