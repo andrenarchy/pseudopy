@@ -1,10 +1,23 @@
 import numpy
 from scipy.linalg import svdvals, schur, eigvalsh, solve_triangular
 #from scipy.sparse.linalg import svds
-from scipy.sparse.linalg import eigs, eigsh, LinearOperator
+from scipy.sparse.linalg import eigsh, LinearOperator
 
 
 def inv_resolvent_norm(A, z, method='svd'):
+    '''Compute the reciprocal norm of the resolvent
+
+    :param A: the input matrix as a ``numpy.array``, sparse matrix or
+      ``LinearOperator`` with ``A.shape==(m,n)``, where :math:`m\geq n`.
+    :param z: a complex number
+    :param method: (optional) one of
+
+      * ``svd`` (default): computes the minimal singular value of :math:`A-zI`.
+        This one should be used for dense matrices.
+      * ``lanczos``: computes the minimal singular value with the Lanczos
+        iteration on the matrix
+        :math:`\\begin{bmatrix}0&A\\\\A^*&0\\end{bmatrix}`
+    '''
     if method == 'svd':
         return numpy.min(svdvals(A - z*numpy.eye(*A.shape)))
     elif method == 'lanczos':
@@ -43,6 +56,7 @@ def evaluate(A,
     Vals = numpy.zeros((imag_n, real_n))
     if method == 'dense':
         # algorithm from page 375 of Trefethen/Embree 2005
+        # TODO: use efficient lanczos :)
         maxiter = 100
         T, _ = schur(A, output='complex')
         for imag_i in range(imag_n):
