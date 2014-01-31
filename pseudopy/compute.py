@@ -1,33 +1,51 @@
 import numpy
 from scipy.linalg import svdvals
 #from scipy.sparse.linalg import svds
-from scipy.sparse.linalg import eigsh, LinearOperator
+from scipy.sparse.linalg import eigs, eigsh, LinearOperator
 
 
-def svds(A, k=6, ncv=None, tol=0, which='LM', v0=None,
-         maxiter=None, return_singular_vectors=True):
-
-    n, m = A.shape
-
-    def matvec_AH_A(x):
-        return A.T.conj().dot(A.dot(x))
-
-    AH_A = LinearOperator(matvec=matvec_AH_A, dtype=A.dtype,
-                          shape=(A.shape[1], A.shape[1]))
-
-    evals = eigsh(AH_A, k=k, tol=tol ** 2, maxiter=maxiter,
-                              ncv=ncv, which=which, v0=v0,
-                              return_eigenvectors=False)
-    print(evals)
-    return numpy.sqrt(evals)
-
-
-def inv_resolvent_norm(A, z, method='svd'):
+def inv_resolvent_norm(A, z, method='lanczos'):
     if method == 'svd':
         return numpy.min(svdvals(A - z*numpy.eye(*A.shape)))
     elif method == 'lanczos':
-        B = A - z*numpy.eye(*A.shape)
-        return svds(B, k=1, which='SM', tol=0, return_singular_vectors=True)
+        m, n = A.shape
+        if m > n:
+            raise ValueError('m > n is not allowed')
+        AH = A.T.conj()
+
+        def matvec(x):
+            x1 = x[:m]
+            x2 = x[m:]
+            ret1 = AH.dot(x2) - numpy.conj(z)*x2
+            ret2 = numpy.array(A.dot(x1), dtype=numpy.complex)
+            ret2[:n] -= z*x1
+            return numpy.c_[ret1, ret2]
+        AH_A = LinearOperator(matvec=matvec, dtype=numpy.complex,
+                              shape=(m+n, m+n))
+
+        evals = eigsh(AH_A, k=2, tol=1e-6, which='SM', maxiter=m+n+1,
+                      ncv=m+n+1,
+                      return_eigenvectors=False)
+
+        return numpy.min(numpy.abs(evals))
+
+
+def evaluate(A,
+             real_min=-1, real_max=1, real_n=50,
+             imag_min=-1, imag_max=1, imag_n=50,
+             method='svd'
+             ):
+    real = numpy.linspace(real_min, real_max, real_n)
+    imag = numpy.linspace(imag_min, imag_max, imag_n)
+
+    Real, Imag = numpy.meshgrid(real, imag)
+
+    Vals = numpy.zeros((imag_n, real_n))
+    for imag_i in range(imag_n):
+        for real_i in range(real_n):
+            Vals[imag_i, real_i] = \
+                inv_resolvent_norm(A, real[real_i]+1j*imag[imag_i])
+    return Real, Imag, Vals
 
 
 def evaluate_points(A, points):

@@ -4,7 +4,7 @@ from matplotlib.tri import Triangulation
 from . import compute
 
 
-def visualize(A, 
+def visualize(A,
               real_min=-1, real_max=1, real_n=50,
               imag_min=-1, imag_max=1, imag_n=50,
               levels=None
@@ -23,5 +23,3 @@ def visualize(A,
     pyplot.colorbar()
 
     pyplot.show()
-
-
