@@ -1,10 +1,10 @@
 import numpy
-from scipy.linalg import svdvals
+from scipy.linalg import svdvals, schur, eigvalsh, solve_triangular
 #from scipy.sparse.linalg import svds
 from scipy.sparse.linalg import eigs, eigsh, LinearOperator
 
 
-def inv_resolvent_norm(A, z, method='lanczos'):
+def inv_resolvent_norm(A, z, method='svd'):
     if method == 'svd':
         return numpy.min(svdvals(A - z*numpy.eye(*A.shape)))
     elif method == 'lanczos':
@@ -24,7 +24,7 @@ def inv_resolvent_norm(A, z, method='lanczos'):
                               shape=(m+n, m+n))
 
         evals = eigsh(AH_A, k=2, tol=1e-6, which='SM', maxiter=m+n+1,
-                      ncv=m+n+1,
+                      ncv=2*(m+n),
                       return_eigenvectors=False)
 
         return numpy.min(numpy.abs(evals))
@@ -41,10 +41,47 @@ def evaluate(A,
     Real, Imag = numpy.meshgrid(real, imag)
 
     Vals = numpy.zeros((imag_n, real_n))
-    for imag_i in range(imag_n):
-        for real_i in range(real_n):
-            Vals[imag_i, real_i] = \
-                inv_resolvent_norm(A, real[real_i]+1j*imag[imag_i])
+    if method == 'dense':
+        # algorithm from page 375 of Trefethen/Embree 2005
+        maxiter = 100
+        T, _ = schur(A, output='complex')
+        for imag_i in range(imag_n):
+            for real_i in range(real_n):
+                z = real[real_i]+1j*imag[imag_i]
+                T1 = z*numpy.eye(*A.shape) - T
+                T2 = T1.T.conj()
+                sig_old = 0
+                q_old = numpy.random.rand(A.shape[0])
+                beta = 0
+                H = numpy.zeros((maxiter+1, maxiter+1))
+                q = numpy.ones(A.shape[0])
+                q /= numpy.linalg.norm(q)
+                for p in range(maxiter):
+                    v = solve_triangular(T1,
+                                         solve_triangular(T2, q)
+                                         ) \
+                        - beta*q_old
+                    alpha = numpy.real(numpy.vdot(q, v))
+                    v = v - alpha*q
+                    beta = numpy.linalg.norm(v)
+                    q_old = q.copy()
+                    q = v/beta
+                    H[p+1, p] = beta
+                    H[p, p+1] = beta
+                    H[p, p] = alpha
+                    sig = numpy.max(eigvalsh(H[:p+1, :p+1]))
+                    if abs(sig_old/sig - 1) < 1e-3:
+                        break
+                    sig_old = sig
+                Vals[imag_i, real_i] = numpy.sqrt(sig)
+
+    else:
+        for imag_i in range(imag_n):
+            for real_i in range(real_n):
+                Vals[imag_i, real_i] = \
+                    inv_resolvent_norm(A,
+                                       real[real_i]+1j*imag[imag_i],
+                                       method=method)
     return Real, Imag, Vals
 
 
