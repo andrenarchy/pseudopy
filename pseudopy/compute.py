@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import numpy
-from scipy.linalg import svdvals, schur, eigvalsh, solve_triangular
-#from scipy.sparse.linalg import svds
-from scipy.sparse.linalg import eigs, eigsh, LinearOperator
+from scipy.linalg import svdvals, schur, solve_triangular
+from scipy.sparse.linalg import eigsh, LinearOperator
 
 
 def inv_resolvent_norm(A, z, method='svd'):
@@ -45,55 +44,54 @@ def inv_resolvent_norm(A, z, method='svd'):
         return numpy.min(numpy.abs(evals))
 
 
-def evaluate(A,
-             real_min=-1, real_max=1, real_n=50,
-             imag_min=-1, imag_max=1, imag_n=50,
-             method='svd'
-             ):
+def evaluate_meshgrid(A,
+                      real_min=-1, real_max=1, real_n=50,
+                      imag_min=-1, imag_max=1, imag_n=50,
+                      **kwargs
+                      ):
     real = numpy.linspace(real_min, real_max, real_n)
     imag = numpy.linspace(imag_min, imag_max, imag_n)
 
     Real, Imag = numpy.meshgrid(real, imag)
 
-    Vals = numpy.zeros((imag_n, real_n))
-    if method == 'dense':
+    points = Real.flatten() + 1j*Imag.flatten()
+    vals = evaluate_points(A, points, **kwargs)
+
+    return Real, Imag, numpy.array(vals).reshape((imag_n, real_n))
+
+
+def evaluate_points(A, points, **kwargs):
+    if 'method' in kwargs and kwargs['method'] == 'lanczosinv':
+        vals = []
+
         # algorithm from page 375 of Trefethen/Embree 2005
         T, _ = schur(A, output='complex')
         m, n = A.shape
         if m != n:
             raise ValueError('m != n is not allowed in dense mode')
-        for imag_i in range(imag_n):
-            for real_i in range(real_n):
-                z = real[real_i]+1j*imag[imag_i]
-                M = T - z*numpy.eye(*T.shape)
+        for point in points:
+            M = T - point*numpy.eye(*T.shape)
 
-                def matvec(x):
-                    return solve_triangular(M,
-                                            solve_triangular(M,
-                                                             x,
-                                                             check_finite=False
-                                                             ),
-                                            trans=2,
-                                            check_finite=False
-                                            )
-                MH_M = LinearOperator(matvec=matvec, dtype=numpy.complex,
-                                      shape=(n, n))
+            def matvec(x):
+                return solve_triangular(
+                    M,
+                    solve_triangular(
+                        M,
+                        x,
+                        check_finite=False
+                        ),
+                    trans=2,
+                    check_finite=False
+                    )
+            MH_M = LinearOperator(matvec=matvec, dtype=numpy.complex,
+                                  shape=(n, n))
 
-                evals = eigsh(MH_M, k=1, tol=1e-3, which='LM',
-                              maxiter=n,
-                              ncv=n,
-                              return_eigenvectors=False)
+            evals = eigsh(MH_M, k=1, tol=1e-3, which='LM',
+                          maxiter=n,
+                          ncv=n,
+                          return_eigenvectors=False)
 
-                Vals[imag_i, real_i] = 1/numpy.sqrt(numpy.max(numpy.abs(evals)))
+            vals.append(1/numpy.sqrt(numpy.max(numpy.abs(evals))))
+        return vals
     else:
-        for imag_i in range(imag_n):
-            for real_i in range(real_n):
-                Vals[imag_i, real_i] = \
-                    inv_resolvent_norm(A,
-                                       real[real_i]+1j*imag[imag_i],
-                                       method=method)
-    return Real, Imag, Vals
-
-
-def evaluate_points(A, points):
-    return [inv_resolvent_norm(A, point) for point in points]
+        return [inv_resolvent_norm(A, point, **kwargs) for point in points]
