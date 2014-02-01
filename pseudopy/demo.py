@@ -6,8 +6,6 @@ from scipy.sparse import csr_matrix
 from matplotlib import pyplot
 from . import compute, visualize
 
-from mpltools import style
-
 
 def toeplitz1(N):
     column = numpy.zeros(N)
@@ -26,9 +24,6 @@ def grcar(N, k=3):
 
 
 def grcar_demo():
-    style.use('ggplot')
-    pyplot.gca().set_aspect(0.5)
-
     A = grcar(32).todense()
 
     # compute pseudospectrum
