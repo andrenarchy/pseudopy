@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from matplotlib import pyplot
 import numpy
 from matplotlib.tri import Triangulation

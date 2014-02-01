@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import numpy
 from scipy.linalg import svdvals, schur, eigvalsh, solve_triangular
 #from scipy.sparse.linalg import svds
