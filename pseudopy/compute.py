@@ -49,6 +49,7 @@ def evaluate_meshgrid(A,
                       imag_min=-1, imag_max=1, imag_n=50,
                       **kwargs
                       ):
+    '''Evaluates the inverse resolvent norm on a meshgrid'''
     real = numpy.linspace(real_min, real_max, real_n)
     imag = numpy.linspace(imag_min, imag_max, imag_n)
 
@@ -61,6 +62,7 @@ def evaluate_meshgrid(A,
 
 
 def evaluate_points(A, points, **kwargs):
+    '''Evaluates the inverse resolvent norm on the given list of points'''
     if 'method' in kwargs and kwargs['method'] == 'lanczosinv':
         vals = []
 
@@ -95,3 +97,24 @@ def evaluate_points(A, points, **kwargs):
         return vals
     else:
         return [inv_resolvent_norm(A, point, **kwargs) for point in points]
+
+
+def level_paths_meshgrid(X, Y, Z, levels):
+    '''Extract the polygon patches of the provided levels'''
+    from matplotlib import pyplot
+    contour = pyplot.contour(X, Y, Z, levels)
+
+    level_paths = {}
+    for level, i in zip(levels, range(0, len(levels))):
+        line = contour.collections[i]
+        level_paths[level] = []
+        for path in line.get_paths():
+            level_paths[level].append(
+                path.vertices[:, 0]+1j*path.vertices[:, 1]
+                )
+    return level_paths
+
+
+def path_length(path):
+    '''Compute length of given polygon path'''
+    return numpy.sum(numpy.abs(path[1:]-path[:-1]))
