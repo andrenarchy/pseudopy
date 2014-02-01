@@ -10,11 +10,13 @@ def read(fname):
 setup(name='pseudopy',
       packages=['pseudopy'],
       version='1.0.0',
-      description='Compute and visualize pseudospectra of matrices (like eigtool)',
+      description='Compute and visualize pseudospectra of'
+                  + ' matrices (like eigtool)',
       long_description=read('README.md'),
       author='André Gaul',
       author_email='gaul@web-yard.de',
       url='https://github.com/andrenarchy/pseudopy',
+      requires=['scipy (>=0.12)', 'matplotlib (>=1.2.1)'],
       classifiers=[
           'Development Status :: 4 - Beta',
           'Intended Audience :: Science/Research',
