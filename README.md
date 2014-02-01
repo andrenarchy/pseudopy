@@ -7,9 +7,21 @@ The pseudospectrum of the Grcar matrix looks like this:
 
 ![Pseudospectrum of Grcar matrix](grcar.png)
 
-The above figure can be created by running
+The above figure can be created with the following lines of code:
 ```python
-from pseudopy import demo
-demo.grcar_demo()
+from pseudopy import compute, demo, visualize
+from matplotlib import pyplot
+from scipy.linalg import eigvals
+
+A = demo.grcar(32).todense()
+
+X, Y, Z = compute.evaluate_meshgrid(A,
+                                    real_min=-1, real_max=3, real_n=400,
+                                    imag_min=-3.5, imag_max=3.5, imag_n=400)
+
+visualize.contour_meshgrid(X, Y, Z,
+                           levels=[10**k for k in range(-4, 0)],
+                           spectrum=eigvals(A))
+
+pyplot.show()
 ```
-and the corresponding code of `grcar_demo` can be found in [pseudopy/demo.py](pseudopy/demo.py).

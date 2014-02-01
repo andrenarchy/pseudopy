@@ -1,27 +1,43 @@
 # -*- coding: utf-8 -*-
 
 from matplotlib import pyplot
+from matplotlib.ticker import LogFormatterMathtext
+
 import numpy
-from matplotlib.tri import Triangulation
-from . import compute
 
 
-def visualize(A,
-              real_min=-1, real_max=1, real_n=50,
-              imag_min=-1, imag_max=1, imag_n=50,
-              levels=None
-              ):
-    real = numpy.linspace(real_min, real_max, real_n)
-    imag = numpy.linspace(imag_min, imag_max, imag_n)
+def _contour(Z, levels, mode, triang=None, X=None, Y=None,
+             spectrum=None,
+             contour_labels=True,
+             axes_labels=True
+             ):
+    # plot spectrum?
+    if spectrum is not None:
+        pyplot.plot(numpy.real(spectrum), numpy.imag(spectrum), 'o')
 
-    x, y = numpy.meshgrid(real, imag)
-    x = x.flatten()
-    y = y.flatten()
+    # plot pseudospectrum contour
+    if mode == 'meshgrid':
+        contour = pyplot.contour(X, Y, Z, levels=levels,
+                                 colors=pyplot.rcParams['axes.color_cycle'])
+    elif mode == 'triang':
+        contour = pyplot.tricontour(triang, Z, levels=levels)
 
-    vals = compute.evaluate_points(A, x+1j*y)
+    # plot contour labels?
+    if contour_labels:
+        pyplot.clabel(contour, inline=1,
+                      fmt=LogFormatterMathtext())
 
-    triang = Triangulation(x, y)
-    pyplot.tricontour(triang, vals, levels=levels)
-    pyplot.colorbar()
+    # plot axes labels?
+    if axes_labels:
+        pyplot.xlabel('Real part')
+        pyplot.ylabel('Imaginary part')
 
-    pyplot.show()
+    return contour
+
+
+def contour_meshgrid(X, Y, Z, levels, **kwargs):
+    return _contour(Z, levels, mode='meshgrid', X=X, Y=Y, **kwargs)
+
+
+def contour_triang(triang, Z, levels, **kwargs):
+    return _contour(Z, levels, mode='triang', triang=triang, **kwargs)
