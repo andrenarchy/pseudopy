@@ -33,8 +33,8 @@ def grcar_demo():
 
     # compute pseudospectrum
     X, Y, Z = compute.evaluate_meshgrid(A,
-                                        real_min=-1, real_max=3, real_n=20,
-                                        imag_min=-3.5, imag_max=3.5, imag_n=20)
+                                        real_min=-1, real_max=3, real_n=400,
+                                        imag_min=-3.5, imag_max=3.5, imag_n=400)
 
     # plot pseudospectrum
     visualize.contour_meshgrid(X, Y, Z,
