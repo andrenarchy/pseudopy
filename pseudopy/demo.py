@@ -51,4 +51,6 @@ def grcar_demo():
     # plot spectrum
     pyplot.plot(numpy.real(evals), numpy.imag(evals), 'o')
 
+    pyplot.xlabel('Real part')
+    pyplot.ylabel('Imaginary part')
     pyplot.show()
