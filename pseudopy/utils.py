@@ -31,6 +31,12 @@ class Paths(object):
     def length(self):
         return numpy.sum([path.length() for path in self.paths])
 
+    def vertices(self):
+        verts = []
+        for path in self.paths:
+            verts += list(path.vertices)
+        return verts
+
 
 def plot_finish(contours, spectrum=None, contour_labels=True):
     # plot spectrum?
