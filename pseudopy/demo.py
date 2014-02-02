@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import numpy
-from scipy.linalg import toeplitz, eigvals
+from scipy.linalg import toeplitz
 from scipy.sparse import csr_matrix
-from matplotlib import pyplot
-from . import compute, visualize
 
 
 def toeplitz1(N):
@@ -24,15 +22,17 @@ def grcar(N, k=3):
 
 
 def grcar_demo():
-    A = grcar(32).todense()
+    from pseudopy import NonnormalMeshgrid, demo
+    from matplotlib import pyplot
+    from scipy.linalg import eigvals
+
+    # get Grcar matrix
+    A = demo.grcar(32).todense()
 
     # compute pseudospectrum
-    X, Y, Z = compute.evaluate_meshgrid(A,
-                                        real_min=-1, real_max=3, real_n=400,
-                                        imag_min=-3.5, imag_max=3.5, imag_n=400)
-
-    # plot pseudospectrum
-    visualize.contour_meshgrid(X, Y, Z,
-                               levels=[10**k for k in range(-4, 0)],
-                               spectrum=eigvals(A))
+    pseudo = NonnormalMeshgrid(A,
+                               real_min=-1, real_max=3, real_n=400,
+                               imag_min=-3.5, imag_max=3.5, imag_n=400)
+    # plot
+    pseudo.plot([10**k for k in range(-4, 0)], spectrum=eigvals(A))
     pyplot.show()

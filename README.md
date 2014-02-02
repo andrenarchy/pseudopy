@@ -9,19 +9,18 @@ The pseudospectrum of the Grcar matrix looks like this:
 
 The above figure can be created with the following lines of code:
 ```python
-from pseudopy import compute, demo, visualize
+from pseudopy import NonnormalMeshgrid, demo
 from matplotlib import pyplot
 from scipy.linalg import eigvals
 
+# get Grcar matrix
 A = demo.grcar(32).todense()
 
-X, Y, Z = compute.evaluate_meshgrid(A,
-                                    real_min=-1, real_max=3, real_n=400,
-                                    imag_min=-3.5, imag_max=3.5, imag_n=400)
-
-visualize.contour_meshgrid(X, Y, Z,
-                           levels=[10**k for k in range(-4, 0)],
-                           spectrum=eigvals(A))
-
+# compute pseudospectrum
+pseudo = NonnormalMeshgrid(A,
+                           real_min=-1, real_max=3, real_n=400,
+                           imag_min=-3.5, imag_max=3.5, imag_n=400)
+# plot
+pseudo.plot([10**k for k in range(-4, 0)], spectrum=eigvals(A))
 pyplot.show()
 ```

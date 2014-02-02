@@ -1,0 +1,164 @@
+import numpy
+from scipy.linalg import svdvals, schur, solve_triangular
+from scipy.sparse.linalg import eigsh, LinearOperator
+from matplotlib.tri import Triangulation
+from matplotlib import pyplot
+
+from .path import Path, Paths
+
+
+def inv_resolvent_norm(A, z, method='svd'):
+    r'''Compute the reciprocal norm of the resolvent
+
+    :param A: the input matrix as a ``numpy.array``, sparse matrix or
+      ``LinearOperator`` with ``A.shape==(m,n)``, where :math:`m\geq n`.
+    :param z: a complex number
+    :param method: (optional) one of
+
+      * ``svd`` (default): computes the minimal singular value of :math:`A-zI`.
+        This one should be used for dense matrices.
+      * ``lanczos``: computes the minimal singular value with the Lanczos
+        iteration on the matrix
+        :math:`\begin{bmatrix}0&A\\A^*&0\end{bmatrix}`
+    '''
+    if method == 'svd':
+        return numpy.min(svdvals(A - z*numpy.eye(*A.shape)))
+    elif method == 'lanczos':
+        m, n = A.shape
+        if m > n:
+            raise ValueError('m > n is not allowed')
+        AH = A.T.conj()
+
+        def matvec(x):
+            r'''matrix-vector multiplication
+
+            matrix-vector multiplication with matrix
+            :math:`\begin{bmatrix}0&A\\A^*&0\end{bmatrix}`
+            '''
+            x1 = x[:m]
+            x2 = x[m:]
+            ret1 = AH.dot(x2) - numpy.conj(z)*x2
+            ret2 = numpy.array(A.dot(x1), dtype=numpy.complex)
+            ret2[:n] -= z*x1
+            return numpy.c_[ret1, ret2]
+        AH_A = LinearOperator(matvec=matvec, dtype=numpy.complex,
+                              shape=(m+n, m+n))
+
+        evals = eigsh(AH_A, k=2, tol=1e-6, which='SM', maxiter=m+n+1,
+                      ncv=2*(m+n),
+                      return_eigenvectors=False)
+
+        return numpy.min(numpy.abs(evals))
+
+
+class _Nonnormal(object):
+    '''Base class for nonnormal pseudospectra'''
+    def __init__(self, A, points, method='svd'):
+        '''Evaluates the inverse resolvent norm on the given list of points
+
+        Stores result in self.vals and points in self.points
+        '''
+        self.points = points
+        if method == 'lanczosinv':
+            self.vals = []
+
+            # algorithm from page 375 of Trefethen/Embree 2005
+            T, _ = schur(A, output='complex')
+            m, n = A.shape
+            if m != n:
+                raise ValueError('m != n is not allowed in dense mode')
+            for point in points:
+                M = T - point*numpy.eye(*T.shape)
+
+                def matvec(x):
+                    r'''Matrix-vector multiplication
+
+                    Matrix-vector multiplication with matrix
+                    :math:`\begin{bmatrix}0&(A-\lambda I)^{-1}\\(A-\lambda I)^{-1}&0\end{bmatrix}`'''
+                    return solve_triangular(
+                        M,
+                        solve_triangular(
+                            M,
+                            x,
+                            check_finite=False
+                            ),
+                        trans=2,
+                        check_finite=False
+                        )
+                MH_M = LinearOperator(matvec=matvec, dtype=numpy.complex,
+                                      shape=(n, n))
+
+                evals = eigsh(MH_M, k=1, tol=1e-3, which='LM',
+                              maxiter=n,
+                              ncv=n,
+                              return_eigenvectors=False)
+
+                self.vals.append(1/numpy.sqrt(numpy.max(numpy.abs(evals))))
+        else:
+            self.vals = [inv_resolvent_norm(A, point, method=method)
+                         for point in points]
+
+    def _plot(self, contours, spectrum=None, contour_labels=True):
+        # plot spectrum?
+        if spectrum is not None:
+            pyplot.plot(numpy.real(spectrum), numpy.imag(spectrum), 'o')
+
+        # plot contour labels?
+        from matplotlib.ticker import LogFormatterMathtext
+        if contour_labels:
+            pyplot.clabel(contours, inline=1, fmt=LogFormatterMathtext())
+
+
+class NonnormalMeshgrid(_Nonnormal):
+    def __init__(self, A,
+                 real_min=-1, real_max=1, real_n=50,
+                 imag_min=-1, imag_max=1, imag_n=50,
+                 method='svd'):
+
+        real = numpy.linspace(real_min, real_max, real_n)
+        imag = numpy.linspace(imag_min, imag_max, imag_n)
+
+        self.Real, self.Imag = numpy.meshgrid(real, imag)
+
+        # call super constructor
+        super(NonnormalMeshgrid, self).__init__(
+            A, self.Real.flatten() + 1j*self.Imag.flatten())
+        self.Vals = numpy.array(self.vals).reshape((imag_n, real_n))
+
+    def plot(self, epsilons, **kwargs):
+        contours = pyplot.contour(self.Real, self.Imag, self.Vals,
+                                  levels=epsilons,
+                                  colors=pyplot.rcParams['axes.color_cycle'])
+        self._plot(contours, **kwargs)
+        return contours
+
+    def contour_paths(self, epsilon):
+        '''Extract the polygon patches for the provided epsilon'''
+        figure = pyplot.figure()
+        ax = figure.gca()
+        contours = ax.contour(self.Real, self.Imag, self.Vals, [epsilon])
+        paths = Paths()
+        if len(contours.collections) == 0:
+            return paths
+        for path in contours.collections[0].get_paths():
+            paths.add(Path(path.vertices[:, 0] + 1j*path.vertices[:, 1]))
+        pyplot.close(figure)
+        return paths
+
+
+class NonnormalTriang(_Nonnormal):
+    def __init__(self, A, triang, **kwargs):
+        self.triang = triang
+        super(NonnormalTriang, self).__init__(
+            A, triang.x + 1j*triang.y, **kwargs)
+
+    def plot(self, epsilons, **kwargs):
+        contours = pyplot.tricontour(self.triang, self.vals, levels=epsilons)
+        self._plot(contours, **kwargs)
+        return contours
+
+
+class NonnormalPoints(NonnormalTriang):
+    def __init__(self, A, points, **kwargs):
+        triang = Triangulation(numpy.real(points), numpy.imag(points))
+        super(NonnormalPoints, self).__init__(A, triang, **kwargs)
