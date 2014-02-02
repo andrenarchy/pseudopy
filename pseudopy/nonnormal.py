@@ -4,7 +4,7 @@ from scipy.sparse.linalg import eigsh, LinearOperator
 from matplotlib.tri import Triangulation
 from matplotlib import pyplot
 
-from .path import Path, Paths
+from .utils import Path, Paths, plot_finish
 
 
 def inv_resolvent_norm(A, z, method='svd'):
@@ -98,15 +98,6 @@ class _Nonnormal(object):
             self.vals = [inv_resolvent_norm(A, point, method=method)
                          for point in points]
 
-    def _plot(self, contours, spectrum=None, contour_labels=True):
-        # plot spectrum?
-        if spectrum is not None:
-            pyplot.plot(numpy.real(spectrum), numpy.imag(spectrum), 'o')
-
-        # plot contour labels?
-        from matplotlib.ticker import LogFormatterMathtext
-        if contour_labels:
-            pyplot.clabel(contours, inline=1, fmt=LogFormatterMathtext())
 
 
 class NonnormalMeshgrid(_Nonnormal):
@@ -129,7 +120,7 @@ class NonnormalMeshgrid(_Nonnormal):
         contours = pyplot.contour(self.Real, self.Imag, self.Vals,
                                   levels=epsilons,
                                   colors=pyplot.rcParams['axes.color_cycle'])
-        self._plot(contours, **kwargs)
+        plot_finish(contours, **kwargs)
         return contours
 
     def contour_paths(self, epsilon):
@@ -154,7 +145,7 @@ class NonnormalTriang(_Nonnormal):
 
     def plot(self, epsilons, **kwargs):
         contours = pyplot.tricontour(self.triang, self.vals, levels=epsilons)
-        self._plot(contours, **kwargs)
+        plot_finish(contours, **kwargs)
         return contours
 
 
