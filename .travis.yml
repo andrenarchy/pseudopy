@@ -7,6 +7,7 @@ virtualenv:
 before_install:
     - sudo add-apt-repository -y ppa:pylab/stable
     - sudo apt-get update -qq
-    - sudo apt-get install -qq python-numpy python-scipy python3-numpy python3-scipy python-pip python3-pip python-shapely
-    - sudo pip3 install shapely
+    - sudo apt-get install -qq python-numpy python-scipy python3-numpy python3-scipy python-pip python-shapely python3-setuptools
+    - sudo python3 -m easy_install pip
+    - sudo pip-3.2 install shapely
 script: nosetests pseudopy/tests
