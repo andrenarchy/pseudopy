@@ -13,29 +13,33 @@ class Path(object):
         return numpy.sum(numpy.abs(self.vertices[1:]-self.vertices[:-1]))
 
 
-class Paths(object):
-    def __init__(self, paths=None):
-        if paths is None:
-            paths = []
-        self.paths = paths
-
-    def __iter__(self):
-        return iter(self.paths)
-
-    def add(self, path):
-        if isinstance(path, list):
-            self.paths += path
-        else:
-            self.paths.append(path)
-
+class Paths(list):
     def length(self):
-        return numpy.sum([path.length() for path in self.paths])
+        return numpy.sum([path.length() for path in self])
 
     def vertices(self):
         verts = []
-        for path in self.paths:
+        for path in self:
             verts += list(path.vertices)
         return verts
+
+
+def get_paths(obj):
+    def _get_polygon_paths(polygon):
+        def _get_points(c):
+            vertices = numpy.array(c.coords)
+            return vertices[:, 0] + 1j*vertices[:, 1]
+        return [Path(_get_points(sub))
+                for sub in [polygon.exterior]+list(polygon.interiors)]
+
+    paths = Paths()
+    import shapely.geometry as geom
+    if isinstance(obj, geom.polygon.Polygon):
+        paths += _get_polygon_paths(obj)
+    elif isinstance(obj, geom.multipolygon.MultiPolygon):
+        for polygon in obj:
+            paths += _get_polygon_paths(polygon)
+    return paths
 
 
 def plot_finish(contours, spectrum=None, contour_labels=True):

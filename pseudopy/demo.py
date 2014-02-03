@@ -31,7 +31,7 @@ def grcar_demo():
 
     # compute pseudospectrum
     pseudo = NonnormalMeshgrid(A,
-                               real_min=-1, real_max=3, real_n=400,
+                               real_min=-1,   real_max=3,   real_n=400,
                                imag_min=-3.5, imag_max=3.5, imag_n=400)
     # plot
     pseudo.plot([10**k for k in range(-4, 0)], spectrum=eigvals(A))

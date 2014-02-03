@@ -127,12 +127,13 @@ class NonnormalMeshgrid(_Nonnormal):
         '''Extract the polygon patches for the provided epsilon'''
         figure = pyplot.figure()
         ax = figure.gca()
-        contours = ax.contour(self.Real, self.Imag, self.Vals, [epsilon])
+        contours = ax.contour(self.Real, self.Imag, self.Vals,
+                              levels=[epsilon])
         paths = Paths()
         if len(contours.collections) == 0:
             return paths
         for path in contours.collections[0].get_paths():
-            paths.add(Path(path.vertices[:, 0] + 1j*path.vertices[:, 1]))
+            paths.append(Path(path.vertices[:, 0] + 1j*path.vertices[:, 1]))
         pyplot.close(figure)
         return paths
 
@@ -147,6 +148,18 @@ class NonnormalTriang(_Nonnormal):
         contours = pyplot.tricontour(self.triang, self.vals, levels=epsilons)
         plot_finish(contours, **kwargs)
         return contours
+
+    def contour_paths(self, epsilon):
+        '''Extract the polygon patches for the provided epsilon'''
+        figure = pyplot.figure()
+        contours = pyplot.tricontour(self.triang, self.vals, levels=[epsilon])
+        paths = Paths()
+        if len(contours.collections) == 0:
+            return paths
+        for path in contours.collections[0].get_paths():
+            paths.append(Path(path.vertices[:, 0] + 1j*path.vertices[:, 1]))
+        pyplot.close(figure)
+        return paths
 
 
 class NonnormalPoints(NonnormalTriang):

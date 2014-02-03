@@ -3,7 +3,7 @@ from matplotlib import pyplot
 import shapely.geometry as geom
 from shapely.ops import cascaded_union
 
-from .utils import Path, Paths, plot_finish
+from .utils import get_paths, plot_finish
 
 
 class NormalEvals(object):
@@ -37,22 +37,7 @@ class NormalEvals(object):
         # pseudospectrum is union of circles
         pseudospec = cascaded_union(circles)
 
-        def _get_polygon_paths(polygon):
-            def _get_points(c):
-                vertices = numpy.array(c.coords)
-                return vertices[:, 0] + 1j*vertices[:, 1]
-            return [Path(_get_points(sub))
-                    for sub in [polygon.exterior]+list(polygon.interiors)]
-
-        # grab paths
-        paths = Paths()
-        if isinstance(pseudospec, geom.polygon.Polygon):
-            paths.add(_get_polygon_paths(pseudospec))
-        elif isinstance(pseudospec, geom.multipolygon.MultiPolygon):
-            for polygon in pseudospec:
-                paths.add(_get_polygon_paths(polygon))
-
-        return paths
+        return get_paths(pseudospec)
 
 
 class Normal(NormalEvals):

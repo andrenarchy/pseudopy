@@ -2,8 +2,8 @@
 
 from .nonnormal import NonnormalMeshgrid, NonnormalTriang, NonnormalPoints
 from .normal import Normal, NormalEvals
-from . import demo
+from . import demo, utils
 
 __all__ = ['NonnormalMeshgrid', 'NonnormalTriang', 'NonnormalPoints',
            'Normal', 'NormalEvals',
-           'demo']
+           'demo', 'utils']
