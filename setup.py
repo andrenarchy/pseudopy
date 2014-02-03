@@ -9,7 +9,7 @@ def read(fname):
 
 setup(name='pseudopy',
       packages=['pseudopy'],
-      version='1.1.0',
+      version='1.1.1',
       description='Compute and visualize pseudospectra of'
                   + ' matrices (like eigtool)',
       long_description=read('README.md'),
