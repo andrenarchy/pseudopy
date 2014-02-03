@@ -24,3 +24,8 @@ pseudo = NonnormalMeshgrid(A,
 pseudo.plot([10**k for k in range(-4, 0)], spectrum=eigvals(A))
 pyplot.show()
 ```
+
+## Installation
+```pip install pseudopy```
+
+Note that you may need to add `sudo` if you want to install it system-wide.
