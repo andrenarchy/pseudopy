@@ -29,3 +29,6 @@ pyplot.show()
 ```pip install pseudopy```
 
 Note that you may need to add `sudo` if you want to install it system-wide.
+
+## License
+PseudoPy is free software licensed under the [MIT License](http://opensource.org/licenses/mit-license.php).
