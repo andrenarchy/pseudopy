@@ -50,7 +50,7 @@ def test():
     # define epsilons
     epsilons = [0.2, 0.7, 1.1]
 
-    for cls, params in classes.iteritems():
+    for cls, params in classes.items():
         for param in params:
             pseudo = cls(**param)
 
