@@ -166,3 +166,31 @@ class NonnormalPoints(NonnormalTriang):
     def __init__(self, A, points, **kwargs):
         triang = Triangulation(numpy.real(points), numpy.imag(points))
         super(NonnormalPoints, self).__init__(A, triang, **kwargs)
+
+
+class NonnormalMeshgridAuto(NonnormalMeshgrid):
+    '''Determines rough bounding box of pseudospectrum.
+
+    The bounding box is determined for a diagonalizable matrix via the
+    condition number of the eigenvector basis (see theorem 2.3 in the book
+    of Trefethen and Embree). Note that this method produces a bounding box
+    where the pseudospectrum with eps_max is guaranteed to be contained but
+    that the bounding box may be overestimated severely.
+
+    :param A: the matrix as numpy array with ``A.shape==(N,N)``.
+    :param eps_max: maximal value of :math:`\varepsilon` that is of interest.
+    '''
+    def __init__(self, A, eps_max, **kwargs):
+        from scipy.linalg import eig
+        evals, evecs = eig(A)
+
+        # compute condition number of eigenvector basis
+        kappa = numpy.linalg.cond(evecs, 2)
+
+        new_kwargs = {'real_min': numpy.min(evals.real) - eps_max*kappa,
+                      'real_max': numpy.max(evals.real) + eps_max*kappa,
+                      'imag_min': numpy.min(evals.imag) - eps_max*kappa,
+                      'imag_max': numpy.max(evals.imag) + eps_max*kappa
+                      }
+        new_kwargs.update(kwargs)
+        super(NonnormalMeshgridAuto, self).__init__(A, **new_kwargs)
