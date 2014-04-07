@@ -194,3 +194,112 @@ class NonnormalMeshgridAuto(NonnormalMeshgrid):
                       }
         new_kwargs.update(kwargs)
         super(NonnormalMeshgridAuto, self).__init__(A, **new_kwargs)
+
+
+class NonnormalAuto(NonnormalPoints):
+    '''Determines pseudospectrum automatically.
+
+    This method automatically determines an inclusion set for the
+    pseudospectrum. Very useful if you have no idea where the pseudospectrum
+    lives.
+
+    The computation time is dominated by ``N*(N+1)/2`` Schur decompositions and
+    ``N*n_circles*n_points`` computations of the norm of the resolvent inverse.
+    '''
+    def __init__(self, A, eps_min, eps_max,
+                 n_circles=20,
+                 n_points=20,
+                 randomize=True,
+                 **kwargs
+                 ):
+        from scipy.linalg import eig, schur
+        M = A.copy()
+
+        if eps_min <= 0:
+            raise ValueError('eps_min > 0 is required')
+        if eps_min >= eps_max:
+            raise ValueError('eps_min < eps_max is required')
+
+        midpoints = []
+        # compute containment circles with eps_max
+        radii = [eps_max]
+
+        for i in range(A.shape[0]-1):
+            evals, evecs = eig(M)
+
+            # compute condition number of eigenvector basis
+            evec_cond = numpy.linalg.cond(evecs, 2)
+
+            # try all eigenvalues in top-left position and pick the
+            # configuration with smallest radius
+            candidates_midpoints = []
+            candidates_radii = []
+            candidates_Ms = []
+            if len(evals) == 1:
+                midpoints.append(evals[0])
+                radii.append(radii[-1])
+            else:
+                for eval in evals:
+                    dists = numpy.sort(numpy.abs(eval - evals))
+
+                    # get Schur decomposition
+                    def sort(lambd):
+                        return numpy.abs(lambd - eval) <= dists[1]
+                    T, Z, sdim = schur(M, output='complex', sort=sort)
+
+                    # T = [eval c^T]
+                    #     [0    M  ]
+                    # solve Sylvester equation c^T = r^T M - eval*r^T
+                    # <=> r = (M - lambd*I)^{-T} c
+                    c = T[0, 1:]
+                    M_tmp = T[1:, 1:]
+                    candidates_midpoints.append(T[0, 0])
+
+                    r = solve_triangular(M_tmp - T[0, 0],
+                                         c,
+                                         trans='T'
+                                         )
+                    r_norm = numpy.linalg.norm(r, 2)
+                    sep = numpy.min(numpy.abs(T[0, 0] - numpy.diag(M_tmp)))
+                    p = numpy.sqrt(1. + r_norm**2)
+                    kappa = r_norm + numpy.sqrt(r_norm**2 + 1)
+
+                    if radii[-1] > sep/(2*kappa):
+                        # Grammont-Largillier bound
+                        g = numpy.sqrt(1. + numpy.linalg.norm(c, 2)/radii[-1])
+
+                        # Bora bound
+                        #g_bora = 0.5 + numpy.sqrt(0.25 + numpy.linalg.norm(c, 2)/radii[-1])
+                    else:
+                        # Mika bound
+                        eps_sep = radii[-1]/sep
+                        g = (p - eps_sep)/(
+                            0.5 + numpy.sqrt(0.25 - eps_sep*(p - eps_sep))
+                            )
+
+                    candidates_radii.append(
+                        numpy.min([evec_cond, radii[-1] * g])
+                        )
+                    candidates_Ms.append(M_tmp)
+                min_index = numpy.argmin(candidates_radii)
+                midpoints.append(candidates_midpoints[min_index])
+                radii.append(candidates_radii[min_index])
+                M = candidates_Ms[min_index]
+
+        # construct points for evaluation of resolvent
+        points = []
+        arg = numpy.linspace(0, 2*numpy.pi, n_points, endpoint=False)
+
+        for midpoint, radius_max in zip(midpoints, radii):
+            radius_log = numpy.logspace(numpy.log10(eps_min),
+                                        numpy.log10(radius_max),
+                                        n_circles
+                                        )
+            #radius_lin = numpy.linspace(eps_min, radius_max, n_circles)
+            for radius in radius_log:
+                rand = 0.
+                if randomize:
+                    rand = numpy.random.rand()
+                points.append(midpoint + radius*numpy.exp(1j*(rand+arg)))
+        points = numpy.concatenate(points)
+        super(NonnormalAuto, self).__init__(A, points, **kwargs)
