@@ -42,10 +42,19 @@ def get_paths(obj):
     return paths
 
 
-def plot_finish(contours, spectrum=None, contour_labels=True):
+def plot_finish(contours, spectrum=None, contour_labels=True, autofit=True):
     # plot spectrum?
     if spectrum is not None:
         pyplot.plot(numpy.real(spectrum), numpy.imag(spectrum), 'o')
+
+    if autofit:
+        vertices = []
+        for collection in contours.collections:
+            for path in collection.get_paths():
+                vertices.append(path.vertices[:, 0] + 1j*path.vertices[:, 1])
+        vertices = numpy.concatenate(vertices)
+        pyplot.xlim(numpy.min(vertices.real), numpy.max(vertices.real))
+        pyplot.ylim(numpy.min(vertices.imag), numpy.max(vertices.imag))
 
     # plot contour labels?
     from matplotlib.ticker import LogFormatterMathtext
