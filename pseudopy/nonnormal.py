@@ -224,7 +224,7 @@ class NonnormalAuto(NonnormalPoints):
         # compute containment circles with eps_max
         radii = [eps_max]
 
-        for i in range(A.shape[0]-1):
+        for i in range(A.shape[0]):
             evals, evecs = eig(M)
 
             # compute condition number of eigenvector basis
@@ -255,36 +255,50 @@ class NonnormalAuto(NonnormalPoints):
                     M_tmp = T[1:, 1:]
                     candidates_midpoints.append(T[0, 0])
 
-                    r = solve_triangular(M_tmp - T[0, 0],
+                    r = solve_triangular(M_tmp - T[0, 0]*numpy.eye(*M_tmp.shape),
                                          c,
                                          trans='T'
                                          )
+                    sep_min = numpy.min(svdvals(M_tmp - T[0, 0]*numpy.eye(*M_tmp.shape)))
+                    sep_max = numpy.min(numpy.abs(T[0, 0] - numpy.diag(M_tmp)))
                     r_norm = numpy.linalg.norm(r, 2)
-                    sep = numpy.min(numpy.abs(T[0, 0] - numpy.diag(M_tmp)))
                     p = numpy.sqrt(1. + r_norm**2)
-                    kappa = r_norm + numpy.sqrt(r_norm**2 + 1)
 
-                    if radii[-1] > sep/(2*kappa):
-                        # Grammont-Largillier bound
-                        g = numpy.sqrt(1. + numpy.linalg.norm(c, 2)/radii[-1])
+                    # Grammont-Largillier bound
+                    g_gram_larg = numpy.sqrt(1. + numpy.linalg.norm(c, 2)/radii[-1])
 
-                        # Bora bound
-                        #g_bora = 0.5 + numpy.sqrt(0.25 + numpy.linalg.norm(c, 2)/radii[-1])
-                    else:
-                        # Mika bound
-                        eps_sep = radii[-1]/sep
-                        g = (p - eps_sep)/(
+                    # Demmel 1: g = kappa
+                    g_demmel1 = kappa = p + r_norm
+
+                    # Demmel 2
+                    g_demmel2 = numpy.Inf
+                    if radii[-1] <= sep_min/(2*kappa):
+                        g_demmel2 = p + r_norm**2 * radii[-1]/(0.5*sep_min - p*radii[-1])
+
+                    # Michael Karow bound (personal communication)
+                    g_mika = numpy.Inf
+                    if radii[-1] <= sep_min/(2*kappa):
+                        eps_sep = radii[-1]/sep_min
+                        g_mika = (p - eps_sep)/(
                             0.5 + numpy.sqrt(0.25 - eps_sep*(p - eps_sep))
                             )
 
+                    # use the minimum of the above g's
                     candidates_radii.append(
-                        numpy.min([evec_cond, radii[-1] * g])
+                        radii[-1]*numpy.min([evec_cond,
+                                             g_gram_larg,
+                                             g_demmel1,
+                                             g_demmel2,
+                                             g_mika
+                                             ])
                         )
                     candidates_Ms.append(M_tmp)
                 min_index = numpy.argmin(candidates_radii)
                 midpoints.append(candidates_midpoints[min_index])
                 radii.append(candidates_radii[min_index])
                 M = candidates_Ms[min_index]
+        # remove first radius
+        radii = radii[1:]
 
         # construct points for evaluation of resolvent
         points = []
