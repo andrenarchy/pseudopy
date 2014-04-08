@@ -7,19 +7,18 @@ The pseudospectrum of the Grcar matrix looks like this:
 
 ![Pseudospectrum of Grcar matrix](grcar.png)
 
-The above figure can be created with the following lines of code:
+If no knowledge about the location of the pseudospectrum of given matrix is available, the following lines of code can be used to obtain an approximation:
 ```python
-from pseudopy import NonnormalMeshgrid, demo
+from pseudopy import NonnormalAuto, demo
 from matplotlib import pyplot
 from scipy.linalg import eigvals
 
 # get Grcar matrix
 A = demo.grcar(32).todense()
 
-# compute pseudospectrum
-pseudo = NonnormalMeshgrid(A,
-                           real_min=-1, real_max=3, real_n=400,
-                           imag_min=-3.5, imag_max=3.5, imag_n=400)
+# compute pseudospectrum for the levels of interest between [1e-5, 1]
+pseudo = NonnormalAuto(A, 1e-5, 1)
+
 # plot
 pseudo.plot([10**k for k in range(-4, 0)], spectrum=eigvals(A))
 pyplot.show()
