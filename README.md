@@ -7,7 +7,7 @@ The pseudospectrum of the Grcar matrix looks like this:
 
 ![Pseudospectrum of Grcar matrix](grcar.png)
 
-If no knowledge about the location of the pseudospectrum of given matrix is available, the following lines of code can be used to obtain an approximation:
+If no knowledge about the location of the pseudospectrum of the given matrix is available, the following lines of code can be used to obtain an approximation:
 ```python
 from pseudopy import NonnormalAuto, demo
 from matplotlib import pyplot
