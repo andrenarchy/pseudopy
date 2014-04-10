@@ -303,17 +303,21 @@ class NonnormalAuto(NonnormalPoints):
         # construct points for evaluation of resolvent
         points = []
         arg = numpy.linspace(0, 2*numpy.pi, n_points, endpoint=False)
-
         for midpoint, radius_max in zip(midpoints, radii):
             radius_log = numpy.logspace(numpy.log10(eps_min),
                                         numpy.log10(radius_max),
                                         n_circles
                                         )
+
             #radius_lin = numpy.linspace(eps_min, radius_max, n_circles)
             for radius in radius_log:
                 rand = 0.
                 if randomize:
                     rand = numpy.random.rand()
-                points.append(midpoint + radius*numpy.exp(1j*(rand+arg)))
+
+                # check that radius is larger than round-off in order to
+                # avoid duplicate points
+                if numpy.abs(radius)/numpy.abs(midpoint) > 1e-15:
+                    points.append(midpoint + radius*numpy.exp(1j*(rand+arg)))
         points = numpy.concatenate(points)
         super(NonnormalAuto, self).__init__(A, points, **kwargs)
