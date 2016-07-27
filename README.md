@@ -25,6 +25,13 @@ pyplot.show()
 ```
 
 ## Installation
+### Dependencies
+PseudoPy depends on numpy, scipy, matplotlib and shapely. If you are on Debian/Ubuntu, you can install these dependencies with
+```
+sudo apt-get install python-numpy python-scipy python-matplotlib python-shapely
+```
+
+### pip
 ```pip install pseudopy```
 
 Note that you may need to add `sudo` if you want to install it system-wide.
