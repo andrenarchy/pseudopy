@@ -1,7 +1,9 @@
+import matplotlib
+matplotlib.use('Agg')
+
 import numpy
 import pseudopy
 from itertools import product
-
 
 def dict_merge(*dicts):
     items = []
