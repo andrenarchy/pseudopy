@@ -2,8 +2,6 @@ language: python
 python:
     - "2.7"
     - "3.6"
-virtualenv:
-    system_site_packages: true
 before_install:
     - pip install --only-binary=numpy,scipy numpy scipy shapely matplotlib
 script: nosetests pseudopy/tests
