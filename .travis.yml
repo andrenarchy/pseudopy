@@ -1,12 +1,9 @@
 language: python
 python:
     - "2.7"
-    - "3.2"
+    - "3.6"
 virtualenv:
     system_site_packages: true
 before_install:
-    - sudo add-apt-repository -y ppa:pylab/stable
-    - sudo apt-get update -qq
-    - sudo apt-get install -qq python-numpy python-scipy python3-numpy python3-scipy
-    - pip install shapely matplotlib
+    - pip install --only-binary=numpy,scipy numpy scipy shapely matplotlib
 script: nosetests pseudopy/tests
