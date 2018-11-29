@@ -119,7 +119,8 @@ class NonnormalMeshgrid(_Nonnormal):
     def plot(self, epsilons, **kwargs):
         contours = pyplot.contour(self.Real, self.Imag, self.Vals,
                                   levels=epsilons,
-                                  colors=pyplot.rcParams['axes.color_cycle'])
+                                  colors=pyplot.rcParams['axes.prop_cycle'].by_key()['color']
+                                  )
         plot_finish(contours, **kwargs)
         return contours
 
